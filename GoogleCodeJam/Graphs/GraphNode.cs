@@ -1,60 +1,74 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GoogleCodeJam.Graphs
 {
 	public interface IGraphNode<out T>
 	{
-		T Payload { get; set; }
-		bool IsEvaluated { get; set; }
 		IGraphNode<T> Parent { get; }
-		IEnumerable<IGraphNode<T>> Parents { get; }
+		T State { get; }
+		int Depth { get; }
 	}
 
-	public class GraphNode<T> : IGraphNode<T>
+	public class GraphNode<T> : IGraphNode<T>, IEquatable<IGraphNode<T>>
 	{
-		public T Payload { get; internal set; }
-		public IGraphNode<T> Parent => Parents.FirstOrDefault();
-		public IEnumerable<IGraphNode<T>> Parents { get; protected set; }
+		public IGraphNode<T> Parent { get;}
+		public T State { get; }
 
-		public GraphNode(T payload)
+		public GraphNode(T state)
 		{
-			Payload = payload;
+			State = state;
 		}
 
-		public GraphNode(T payload, IGraphNode<T> parent)
-			: this(payload)
+		public GraphNode(IGraphNode<T> parent, T state)
 		{
-			SetParents(parent);
+			Parent = parent;
+			State = state;
 		}
 
-		public GraphNode(IGraphNode<T> parent)
+		private int? _depth;
+
+		public int Depth
 		{
-			SetParents(parent);
+			get
+			{
+				// TODO cyclic depth
+				if (!_depth.HasValue)
+					_depth = Parent?.Depth + 1 ?? 0;
+
+				return _depth.Value;
+			}
 		}
 
-		public GraphNode(T payload, IEnumerable<IGraphNode<T>> parents)
-			: this(payload)
+		public override string ToString()
 		{
-			SetParents(parents);
+			return $"[{Depth}] {State}";
 		}
 
-		public GraphNode(IEnumerable<IGraphNode<T>> parents)
+		#region Equals
+
+		public bool Equals(IGraphNode<T> other)
 		{
-			SetParents(parents);
+			if (ReferenceEquals(other, null)) return false;
+			if (ReferenceEquals(this, other)) return true;
+
+			return EqualityComparer<T>.Default.Equals(State, other.State);
 		}
 
-		protected void SetParents(IEnumerable<IGraphNode<T>> parents)
+		public override bool Equals(object obj)
 		{
-			Parents = parents.ToArray();
+			if (ReferenceEquals(null, obj)) return false;
+			if (ReferenceEquals(this, obj)) return true;
+			if (!(obj is IGraphNode<T>)) return false;
+
+			return Equals((IGraphNode<T>) obj);
 		}
 
-		protected void SetParents(params IGraphNode<T>[] parents)
+		public override int GetHashCode()
 		{
-			Parents = parents ?? new IGraphNode<T>[0];
+			return EqualityComparer<T>.Default.GetHashCode(State);
 		}
+
+		#endregion
 	}
 }
